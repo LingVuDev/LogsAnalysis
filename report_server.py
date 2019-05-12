@@ -91,5 +91,4 @@ def get_day_with_most_errors():
 
 
 if __name__ == '__main__':
-    get_day_with_most_errors()
     app.run(host='0.0.0.0', port=8000)
