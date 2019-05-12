@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import psycopg2
 from flask import Flask
 
@@ -43,8 +44,7 @@ def append_section(data, title, label="view"):
 
 
 def get_three_most_popular_article():
-    db = psycopg2.connect(database='news')
-    cursor = db.cursor()
+    db, cursor = connect('news')
     cursor.execute("SELECT articles.title, count(path) "
                    "FROM log, articles "
                    "WHERE path like '%article%' "
@@ -58,8 +58,7 @@ def get_three_most_popular_article():
 
 
 def get_most_popular_article_authors():
-    db = psycopg2.connect(database='news')
-    cursor = db.cursor()
+    db, cursor = connect('news')
     cursor.execute("SELECT authors.name, count(path) "
                    "FROM log, articles, authors "
                    "WHERE path like '%article%' "
@@ -74,9 +73,8 @@ def get_most_popular_article_authors():
 
 
 def get_day_with_most_errors():
-    db = psycopg2.connect(database='news')
-    cursor = db.cursor()
-    cursor.execute("SELECT normal.time::date, "
+    db, cursor = connect('news')
+    cursor.execute("SELECT to_char(normal.time::date, 'DD/MM/YYYY'), "
                    "CAST(count(err.status) AS float) / CAST(count(normal.status) AS float) * 100 "
                    "FROM log as normal "
                    "FULL JOIN (select * from log where status like '4%') as err "
@@ -84,10 +82,18 @@ def get_day_with_most_errors():
                    "GROUP BY normal.time::date "
                    "HAVING CAST(count(err.status) AS float) / CAST(count(normal.status) AS float) > 0.01;")
     data = cursor.fetchall()
-    for i, row in enumerate(data):
-        data[i] = (row[0].strftime('%m/%d/%Y'), round(row[1], 2))
     db.close()
     return data
+
+
+def connect(database_name):
+    """Connect to the PostgreSQL database.  Returns a database connection."""
+    try:
+        db = psycopg2.connect("dbname={}".format(database_name))
+        c = db.cursor()
+        return db, c
+    except psycopg2.Error as e:
+        print("Unable to connect to database")
 
 
 if __name__ == '__main__':
